@@ -16,7 +16,26 @@
   html, body { height: 100%; overflow: hidden; background: #fff; }
   body {
     font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  }
+
+  /* 전체 레이아웃 컨테이너 (CSS 회전 지원) */
+  #app {
+    position: fixed; top: 0; left: 0;
+    width: 100vw; height: 100vh;
     display: flex; flex-direction: column;
+    background: #fff;
+  }
+  /* ?rot=90 : 시계 방향 90° 회전 (가로 화면에 세로 콘텐츠) */
+  body.rot90 #app {
+    width: 100vh; height: 100vw;
+    transform: rotate(90deg) translateY(-100%);
+    transform-origin: top left;
+  }
+  /* ?rot=270 : 반시계 방향 90° 회전 */
+  body.rot270 #app {
+    width: 100vh; height: 100vw;
+    transform: rotate(-90deg) translateX(-100%);
+    transform-origin: top left;
   }
 
   /* ── 상단 바 ─────────────────────────────── */
@@ -64,9 +83,39 @@
     padding: 3px 10px; border-radius: 10px;
     z-index: 10;
   }
+
+  /* ── 세로(포트레이트) 화면 대응 ─────────────── */
+  @media (orientation: portrait) {
+    :root { --header-h: 120px; }
+    header {
+      flex-wrap: wrap;
+      padding: 12px 28px;
+      align-content: center;
+      row-gap: 4px;
+    }
+    .lab-name { font-size: 26px; }
+    .lab-name .sub { font-size: 12px; letter-spacing: 2px; }
+    .today { margin-right: 20px; }
+    .today .date { font-size: 22px; }
+    .clock { font-size: 38px; min-width: 150px; }
+    .clock .sec { font-size: 20px; }
+  }
+  /* CSS 회전으로 세로가 된 경우에도 동일 적용 */
+  body.rot90, body.rot270 { --header-h: 120px; }
+  body.rot90 header, body.rot270 header {
+    flex-wrap: wrap; padding: 12px 28px;
+    align-content: center; row-gap: 4px;
+  }
+  body.rot90 .lab-name, body.rot270 .lab-name { font-size: 26px; }
+  body.rot90 .lab-name .sub, body.rot270 .lab-name .sub { font-size: 12px; letter-spacing: 2px; }
+  body.rot90 .today, body.rot270 .today { margin-right: 20px; }
+  body.rot90 .today .date, body.rot270 .today .date { font-size: 22px; }
+  body.rot90 .clock, body.rot270 .clock { font-size: 38px; min-width: 150px; }
+  body.rot90 .clock .sec, body.rot270 .clock .sec { font-size: 20px; }
 </style>
 </head>
 <body>
+<div id="app">
 
 <header>
   <div class="lab-name">
@@ -85,6 +134,16 @@
 </div>
 
 <div class="refresh-note" id="refresh-note"></div>
+
+</div><!-- /#app -->
+
+<script>
+  // ── 회전 모드: URL에 ?rot=90 또는 ?rot=270 을 붙이면
+  //    페이지 전체가 회전되어 가로 화면에 세로 레이아웃으로 표시됨
+  const rot = new URLSearchParams(location.search).get("rot");
+  if (rot === "90")  document.body.classList.add("rot90");
+  if (rot === "270") document.body.classList.add("rot270");
+</script>
 
 <script>
   // ── 설정 ─────────────────────────────────────
