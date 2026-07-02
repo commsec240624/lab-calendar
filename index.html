@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMMSEC Lab Calendar</title>
+<style>
+  :root {
+    --navy: #0e2038;
+    --navy-soft: #1a3252;
+    --accent: #4da3ff;
+    --text-dim: #9db4cf;
+    --header-h: 88px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #fff; }
+  body {
+    font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── 상단 바 ─────────────────────────────── */
+  header {
+    height: var(--header-h);
+    background: linear-gradient(90deg, var(--navy) 0%, var(--navy-soft) 100%);
+    color: #fff;
+    display: flex; align-items: center;
+    padding: 0 36px;
+    flex-shrink: 0;
+  }
+  .lab-name {
+    font-size: 30px; font-weight: 800; letter-spacing: 0.5px;
+  }
+  .lab-name .sub {
+    display: block; font-size: 14px; font-weight: 500;
+    color: var(--text-dim); letter-spacing: 2.5px; margin-top: 2px;
+  }
+  .spacer { flex: 1; }
+  .today {
+    text-align: right; margin-right: 32px;
+  }
+  .today .date { font-size: 26px; font-weight: 700; }
+  .today .dday { font-size: 14px; color: var(--text-dim); margin-top: 2px; }
+  .clock {
+    font-size: 46px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    min-width: 190px; text-align: right;
+  }
+  .clock .sec { font-size: 24px; font-weight: 600; color: var(--text-dim); }
+
+  /* ── 캘린더 영역 ──────────────────────────── */
+  .cal-wrap { flex: 1; position: relative; }
+  iframe {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; border: 0;
+  }
+
+  /* ── 하단 갱신 표시 ───────────────────────── */
+  .refresh-note {
+    position: fixed; right: 14px; bottom: 10px;
+    font-size: 12px; color: #b0b8c2;
+    background: rgba(255,255,255,0.85);
+    padding: 3px 10px; border-radius: 10px;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="lab-name">
+    COMMSEC Lab
+    <span class="sub">SOONGSIL UNIV.</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="today">
+    <div class="date" id="date"></div>
+    <div class="dday" id="week-info"></div>
+  </div>
+  <div class="clock" id="clock"></div>
+</header>
+
+<div class="cal-wrap">
+  <iframe id="cal" title="연구실 캘린더" src=""></iframe>
+</div>
+
+<div class="refresh-note" id="refresh-note"></div>
+
+<script>
+  // ── 설정 ─────────────────────────────────────
+  const CALENDAR_ID = "d9e651390674ab1c05f0cb20817c3dcc3676d5642b5cef405dfbd8577db1c3b1@group.calendar.google.com";
+  const REFRESH_MIN = 30;   // 캘린더 자동 갱신 주기(분)
+
+  // 임베드 URL 구성: 월간 뷰, 한국어, 불필요한 UI 제거
+  function buildSrc() {
+    const p = new URLSearchParams({
+      src: CALENDAR_ID,
+      ctz: "Asia/Seoul",
+      hl: "ko",
+      mode: "MONTH",
+      showTitle: "0",
+      showPrint: "0",
+      showTab: "0",
+      showCalendars: "0",
+      showTz: "0",
+      wkst: "1"           // 일요일 시작
+    });
+    // 캐시 우회용 타임스탬프
+    p.set("_r", Date.now());
+    return "https://calendar.google.com/calendar/embed?" + p.toString();
+  }
+
+  const iframe = document.getElementById("cal");
+  function loadCalendar() {
+    iframe.src = buildSrc();
+    const t = new Date();
+    document.getElementById("refresh-note").textContent =
+      "마지막 갱신 " + String(t.getHours()).padStart(2,"0") + ":" +
+      String(t.getMinutes()).padStart(2,"0") +
+      " · " + REFRESH_MIN + "분마다 자동 갱신";
+  }
+  loadCalendar();
+  setInterval(loadCalendar, REFRESH_MIN * 60 * 1000);
+
+  // ── 날짜 · 시계 ───────────────────────────────
+  const DAYS = ["일","월","화","수","목","금","토"];
+  function pad(n){ return String(n).padStart(2,"0"); }
+
+  function isoWeek(d) {  // ISO 8601 주차
+    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
+  }
+
+  let lastDate = "";
+  function tick() {
+    const n = new Date();
+    document.getElementById("clock").innerHTML =
+      pad(n.getHours()) + ":" + pad(n.getMinutes()) +
+      '<span class="sec">:' + pad(n.getSeconds()) + "</span>";
+
+    const dstr = n.getFullYear() + ". " + (n.getMonth()+1) + ". " + n.getDate() +
+                 " (" + DAYS[n.getDay()] + ")";
+    if (dstr !== lastDate) {   // 날짜가 바뀌면(자정) 헤더 갱신 + 캘린더 재로드
+      if (lastDate !== "") loadCalendar();
+      lastDate = dstr;
+      document.getElementById("date").textContent = dstr;
+      document.getElementById("week-info").textContent = "제 " + isoWeek(n) + "주차";
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
