@@ -76,7 +76,6 @@
   <div class="spacer"></div>
   <div class="today">
     <div class="date" id="date"></div>
-    <div class="dday" id="week-info"></div>
   </div>
   <div class="clock" id="clock"></div>
 </header>
@@ -127,14 +126,6 @@
   const DAYS = ["일","월","화","수","목","금","토"];
   function pad(n){ return String(n).padStart(2,"0"); }
 
-  function isoWeek(d) {  // ISO 8601 주차
-    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNum = t.getUTCDay() || 7;
-    t.setUTCDate(t.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
-    return Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
-  }
-
   let lastDate = "";
   function tick() {
     const n = new Date();
@@ -148,7 +139,6 @@
       if (lastDate !== "") loadCalendar();
       lastDate = dstr;
       document.getElementById("date").textContent = dstr;
-      document.getElementById("week-info").textContent = "제 " + isoWeek(n) + "주차";
     }
   }
   tick();
